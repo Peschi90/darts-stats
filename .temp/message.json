@@ -1,0 +1,40 @@
+{
+    "caller": "de-de-daniel-male",
+    "callersAvailable": [
+        "en-us-matthew-male",
+        "en-us-justin-male",
+        "de-de-daniel-male",
+        "en-us-kevin-male",
+        "en-us-danielle-female",
+        "en-us-gregory-male",
+        "en-us-kimberly-female",
+        "en-gb-arthur-male",
+        "en-gb-amy-female",
+        "en-us-kendra-female",
+        "en-us-joey-male",
+        "en-us-salli-female",
+        "en-us-ruth-female",
+        "en-us-stephen-male",
+        "en-us-ivy-female",
+        "en-us-joanna-female"
+    ],
+    "callersFavoured": [
+        "de-DE-Daniel-Male"
+    ],
+    "event": "welcome"
+}
+
+
+{
+    "event": "match-started",
+    "game": {
+        "mode": "X01",
+        "pointsStart": "501",
+        "special": "TODO"
+    },
+    "id": "019600c8-958a-7005-98aa-a021e329fe68",
+    "me": "d3746763-46f1-47d6-a4c7-d8f12745c4fd",
+    "meHost": true,
+    "player": "i3ull3t",
+    "players": []
+}
