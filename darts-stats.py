@@ -28,7 +28,7 @@ http_session.verify = False
 sio = socketio.Client(http_session=http_session, logger=True, engineio_logger=True)
 
 
-VERSION = '1.8.1'
+VERSION = '0.0.1'
 
 def ppi(message, info_object = None, prefix = '\r\n'):
     logger.info(prefix + str(message))
@@ -49,19 +49,20 @@ class MatchStatsWriter:
         self.writer = None
         self.is_writing = False
 
-    def start_writing(self):
+    def start_writing(self, matchId, matchHost, matchPlayers, gameMode, gamePointsStart):
         """Start writing to the CSV file."""
         self.file = open(self.filename, mode='w', newline='', encoding='utf-8')
         self.writer = csv.writer(self.file)
-        self.writer.writerow(["timestamp", "event", "data"])  # Header row
+        self.writer.writerow(["matchId: "+ matchId+ " matchHost: "+ str(matchHost) + " gameMode: "+ gameMode + " gamePointsStart: "+ gamePointsStart])  # Header row
+        self.writer.writerow(["timestamp", "event", "player", "playerIsBot", "mode", "pointsLeft", "dartNumber", "dartValue", "dartsTrown", "dartsThrownValue", "busted","fieldName", "fieldNumber", "fieldMultiplier", "coordsX", "coordsY"])  # Header row
         self.is_writing = True
         ppi("Started writing to CSV file: " + self.filename)
 
-    def write_row(self, timestamp, event, data):
+    def write_row(self, timestamp, event, player, playerIsBot, mode, pointsLeft, dartNumber, dartValue, dartsTrown, dartsThrownValue, busted, fieldName, fieldNumber, fieldMultiplier, coordsX, coordsY):
         """Write a row to the CSV file."""
         if self.is_writing and self.writer:
-            self.writer.writerow([timestamp, event, json.dumps(data)])
-            ppi(f"Written row to CSV: {timestamp}, {event}, {data}")
+            self.writer.writerow([timestamp, event, player, playerIsBot, mode, pointsLeft, dartNumber, dartValue, dartsTrown, dartsThrownValue, busted, fieldName, fieldNumber, fieldMultiplier, coordsX, coordsY])
+            # ppi(f"Written row to CSV: {timestamp}, {event}, {player}, {playerIsBot}, {mode}, {pointsLeft}, {dartNumber}, {dartValue}")
 
     def stop_writing(self):
         """Stop writing and close the CSV file."""
@@ -87,8 +88,6 @@ def broadcast_intern(endpoint, data):
     except:  
         return
 
-
-
 @sio.event
 def connect():
     ppi('CONNECTED TO DATA-FEEDER ' + sio.connection_url)
@@ -96,10 +95,7 @@ def connect():
         'status': 'STATS connected',
         'version': VERSION
     }
-    sio.emit('message', STATS_Info)
-    
-    
-    
+    sio.emit('message', STATS_Info)   
 
 @sio.event
 def connect_error(data):
@@ -116,18 +112,76 @@ def message(msg):
         if 'event' in msg:
             event = msg['event']
             timestamp = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
+            timestampFile = time.strftime("%Y-%m-%d_%H-%M-%S", time.localtime())
 
             if event == 'match-started':
                 ppi('Match started')
-                match_writer.start_writing()
+                # "event": "match-started",
+                #     "id": currentMatch,
+                #     "me": AUTODART_USER_BOARD_ID,
+                #     "meHost": currentMatchHost,
+                #     "players": currentMatchPlayers,
+                #     "player": currentPlayerName,
+                #     "game": {
+                #         "mode": mode,
+                #         "pointsStart": str(m['settings'][base]),
+                #         # TODO: fix
+                #         "special": "TODO"
+                #         }  
+                matchId = msg['id']
+                matchHost = msg['meHost']
+                matchPlayers = msg['player']
+                gameMode = msg['game']['mode']
+                gamePointsStart = msg['game']['pointsStart']   
+                match_writer.filename =timestampFile+'_'+ msg['game']['mode'] + '_' + msg['id'] + '.csv'
+                match_writer.start_writing(matchId,matchHost,matchPlayers,gameMode,gamePointsStart)
 
             elif event == 'match-ended':
                 ppi('Match ended')
                 match_writer.stop_writing()
 
             elif match_writer.is_writing:
+                # {""event"": ""dart1-thrown"", ""player"": ""i3ull3t"", ""playerIndex"": ""0"", ""playerIsBot"": ""False"", ""game"": {""mode"": ""X01"", ""pointsLeft"": ""481"", ""dartNumber"": ""1"", ""dartValue"": ""20""}}
+                if msg['event'] == 'dart1-thrown' or msg['event'] == 'dart2-thrown' or msg['event'] == 'dart3-thrown':
+                    player = msg['player']
+                    playerIsBot = msg['playerIsBot']
+                    mode = msg['game']['mode']
+                    pointsLeft = msg['game']['pointsLeft']
+                    dartNumber = msg['game']['dartNumber']
+                    dartValue = msg['game']['dartValue']
+                    fieldName = msg['game']['fieldName']
+                    fieldNumber = msg['game']['fieldNumber']
+                    fieldMultiplier = msg['game']['fieldMultiplier']
+                    coordsX = msg['game']['coords']['x']
+                    coordsY = msg['game']['coords']['y']
+
+                    match_writer.write_row(timestamp, event, player, playerIsBot, mode, pointsLeft, dartNumber, dartValue,"", "","",fieldName, fieldNumber, fieldMultiplier, coordsX, coordsY)
                 # Write other events to the CSV file
-                match_writer.write_row(timestamp, event, msg)
+                # match_writer.write_row(timestamp, event, msg)
+                # {""event"": ""darts-pulled"", ""player"": ""i3ull3t"", ""playerIndex"": ""0"", ""game"": {""mode"": ""X01"", ""pointsLeft"": ""321"", ""dartsThrown"": ""3"", ""dartsThrownValue"": ""60"", ""busted"": ""False""}}"
+                elif msg['event'] == 'darts-pulled':
+                    player = msg['player']
+                    mode = msg['game']['mode']
+                    pointsLeft = msg['game']['pointsLeft']
+                    dartsTrown = msg['game']['dartsThrown']
+                    dartsThrownValue = msg['game']['dartsThrownValue']
+                    busted = msg['game']['busted']
+                    match_writer.write_row(timestamp, event, player, "", mode, pointsLeft, "", "", dartsTrown, dartsThrownValue, busted,"", "", "", "", "")
+                # {""event"": ""match-won"", ""player"": ""i3ull3t"", ""playerIndex"": ""0"", ""game"": {""mode"": ""X01"", ""dartsThrownValue"": ""40""}}"
+                elif msg['event'] == 'match-won':
+                    player = msg['player']
+                    mode = msg['game']['mode']
+                    dartsThrownValue = msg['game']['dartsThrownValue']
+
+                    ppi('Match won')
+                    match_writer.write_row(timestamp, event, player, "", mode, "", "", "", "", dartsThrownValue, "", "", "", "", "", "")
+                elif msg['event'] == 'busted':
+                    player = msg['player']
+                    mode = msg['game']['mode']
+                    dartsThrownValue = msg['game']['dartsThrownValue']
+
+                    ppi('Match won')
+                    match_writer.write_row(timestamp, event, player, "", mode, "", "", "", "", dartsThrownValue, "", "", "", "", "", "") 
 
     except Exception as e:
         ppe('DATA-FEEDER Message failed: ', e)
@@ -135,8 +189,6 @@ def message(msg):
 @sio.event
 def disconnect():
     ppi('DISCONNECTED FROM DATA-FEEDER ' + sio.connection_url)
-
-
 
 def connect_data_feeder():
     try:
@@ -149,12 +201,6 @@ def connect_data_feeder():
             sio.connect(server_url, transports=['websocket'], retry=True, wait_timeout=3)
         except Exception:
             pass
-
-
-
-
-
-
 
 if __name__ == "__main__":
     ap = argparse.ArgumentParser()

@@ -1,6 +1,6 @@
-start-custom.bat
 build
 dist
 *.spec
-fav-effects.txt
+*.csv
+.vscode
 __pycache__
