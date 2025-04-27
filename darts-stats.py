@@ -40,8 +40,6 @@ def ppe(message, error_object):
     if DEBUG:
         logger.exception("\r\n" + str(error_object))
 
-
-
 class MatchStatsWriter:
     def __init__(self, filename="match_stats.csv"):
         self.filename = filename
@@ -129,7 +127,10 @@ def message(msg):
                 #         "special": "TODO"
                 #         }  
                 matchId = msg['id']
-                matchHost = msg['meHost']
+                if 'meHost' in msg:
+                    matchHost = msg['meHost']
+                else:
+                    matchHost = 'Turnament' 
                 matchPlayers = msg['player']
                 gameMode = msg['game']['mode']
                 gamePointsStart = msg['game']['pointsStart']   
@@ -156,6 +157,8 @@ def message(msg):
                     coordsY = msg['game']['coords']['y']
 
                     match_writer.write_row(timestamp, event, player, playerIsBot, mode, pointsLeft, dartNumber, dartValue,"", "","",fieldName, fieldNumber, fieldMultiplier, coordsX, coordsY)
+                    lastMessageEvent = msg['event']
+                
                 # Write other events to the CSV file
                 # match_writer.write_row(timestamp, event, msg)
                 # {""event"": ""darts-pulled"", ""player"": ""i3ull3t"", ""playerIndex"": ""0"", ""game"": {""mode"": ""X01"", ""pointsLeft"": ""321"", ""dartsThrown"": ""3"", ""dartsThrownValue"": ""60"", ""busted"": ""False""}}"

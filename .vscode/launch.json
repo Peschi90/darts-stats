@@ -12,7 +12,7 @@
             "program": "${file}",
             "console": "integratedTerminal",
             "args": [
-                // "-CON=192.168.1.86:8079",
+                "-CON=192.168.1.86:8079",
                 "-DEB=1"
             ]
         }

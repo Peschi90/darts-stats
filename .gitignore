@@ -4,3 +4,5 @@ dist
 *.csv
 .vscode
 __pycache__
+*.json
+launch.json
